@@ -1,8 +1,9 @@
+from dotenv import load_dotenv
 from fastapi import FastAPI
 
+from routes import core
+
+load_dotenv()
+
 app = FastAPI()
-
-
-@app.get("/healthcheck")
-def welcome():
-    return {"message": "Welcome to the FastAPI application!"}
+app.include_router(core.base_router)
