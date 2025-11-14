@@ -28,7 +28,7 @@ class DataController(BaseController):
     def generate_unique_filename(self, original_filename: str) -> str:
         unique_id = uuid4().hex
         extension = Path(original_filename).suffix
-        normalised_filename = self.normalise_filename(original_filename)
+        normalised_filename = self.normalise_filename(Path(original_filename).stem)
         unique_filename = f"{normalised_filename}_{unique_id}{extension}"
         return unique_filename
 
