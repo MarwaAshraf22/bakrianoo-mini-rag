@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import aiofiles
 from fastapi import APIRouter, Depends, UploadFile, status
@@ -35,6 +36,7 @@ async def upload_data(
                 content={
                     "status": "success",
                     "message": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
+                    "file_id": Path(unique_filename).stem,
                 },
             )
         except Exception as e:
