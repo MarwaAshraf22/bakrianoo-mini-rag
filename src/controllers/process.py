@@ -6,6 +6,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from controllers.base import BaseController
 from controllers.project import ProjectController
+from models import ProcessingEnums
 
 logger = logging.getLogger("uvicorn.error")  # Use the same logger as in routes
 
@@ -22,9 +23,11 @@ class ProcessController(BaseController):
     def get_file_loader(self, fileid: str):
         extension = self.get_file_extension(fileid=fileid).lower()
         filepath = self.path_project / fileid
-        if extension == ".txt":
+        if not filepath.exists():
+            raise FileNotFoundError(str(filepath))
+        if extension == ProcessingEnums.TXT.value:
             return TextLoader(filepath, encoding="utf-8")
-        elif extension == ".pdf":
+        elif extension == ProcessingEnums.PDF.value:
             return PyMuPDFLoader(filepath)
         else:
             raise ValueError(f"Unsupported file extension: {extension}")
@@ -33,6 +36,9 @@ class ProcessController(BaseController):
         try:
             loader = self.get_file_loader(fileid=fileid)
             return loader.load()
+        except FileNotFoundError as fnfe:
+            logger.error(f"File not found: {repr(fnfe)}")
+            return []
         except ValueError as ve:
             logger.error(f"File loading error: {repr(ve)}")
             return []

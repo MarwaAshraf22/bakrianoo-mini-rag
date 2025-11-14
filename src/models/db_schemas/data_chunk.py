@@ -8,6 +8,7 @@ class DataChunk(BaseModel):
     chunk_metadata: dict
     chunk_order: int = Field(..., gt=0)
     chunk_projectid: ObjectId
+    chunk_assetid: ObjectId
 
     class Config:
         arbitrary_types_allowed = True

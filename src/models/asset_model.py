@@ -37,12 +37,31 @@ class AssetModel(BaseDataModel):
         asset.id = result.inserted_id
         return asset
 
-    async def get_project_assets(self, asset_projectid: str | ObjectId) -> list[Asset]:
+    async def get_asset_by_name(
+        self, asset_projectid: str | ObjectId, asset_name: str
+    ) -> Asset | None:
         asset_projectid = (
             ObjectId(asset_projectid)
             if isinstance(asset_projectid, str)
             else asset_projectid
         )
-        cursor = self.collection.find({"asset_projectid": asset_projectid})
+        document = await self.collection.find_one(
+            {"asset_projectid": asset_projectid, "asset_name": asset_name}
+        )
+        if document:
+            return Asset.model_validate(document)
+        return None
+
+    async def get_project_assets(
+        self, asset_projectid: str | ObjectId, asset_type: str
+    ) -> list[Asset]:
+        asset_projectid = (
+            ObjectId(asset_projectid)
+            if isinstance(asset_projectid, str)
+            else asset_projectid
+        )
+        cursor = self.collection.find(
+            {"asset_projectid": asset_projectid, "asset_type": asset_type}
+        )
         assets = [Asset.model_validate(doc) async for doc in cursor]
         return assets
