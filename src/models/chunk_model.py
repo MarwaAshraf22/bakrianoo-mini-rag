@@ -1,4 +1,3 @@
-from httpx import delete
 from pymongo import InsertOne
 
 from .base_data_model import BaseDataModel
@@ -7,12 +6,12 @@ from .enums.db_enum import DataBaseEnum
 
 
 class ChunkModel(BaseDataModel):
-    def __init__(self, db_client: object):
+    def __init__(self, db_client):
         super().__init__(db_client)
         self.collection = self.db_client[DataBaseEnum.COLLECTION_CHUNK_NAME.value]
 
     @classmethod
-    async def create_instance(cls, db_client: object):
+    async def create_instance(cls, db_client):
         instance = cls(db_client)
         await instance.init_connection()
         return instance
@@ -28,7 +27,7 @@ class ChunkModel(BaseDataModel):
                     name=index.get("name"),
                 )
 
-    async def create_chunk(self, chunk: DataChunk) -> DataChunk:
+    async def insert_chunk(self, chunk: DataChunk) -> DataChunk:
         result = await self.collection.insert_one(
             chunk.model_dump(by_alias=True, exclude_unset=True)
         )

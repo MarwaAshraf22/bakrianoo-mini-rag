@@ -7,9 +7,10 @@ from fastapi.responses import JSONResponse
 
 from controllers import DataController, ProcessController, ProjectController
 from helpers.config import Settings, get_settings
-from models import ResponseSignal
+from models import AssetTypeEnum, ResponseSignal
+from models.asset_model import AssetModel
 from models.chunk_model import ChunkModel
-from models.db_schemas import DataChunk
+from models.db_schemas import Asset, DataChunk
 from models.project_model import ProjectModel
 from routes.schemas.data import ProcessRequest
 
@@ -29,7 +30,8 @@ async def upload_data(
     app_settings: Settings = Depends(get_settings),
 ):
     data_controller = DataController()
-    _ = await ProjectModel.create_instance(db_client=request.app.database)
+    project_model = await ProjectModel.create_instance(db_client=request.app.database)
+    project = await project_model.get_or_create_project(projectid=projectid)
     try:
         _ = data_controller.validate_uploaded_file(file=file)
         project_controller = ProjectController()
@@ -40,13 +42,6 @@ async def upload_data(
             async with aiofiles.open(path_file, "wb") as ptr_file:
                 while content := await file.read(app_settings.FILE_DEFAULT_CHUNK_SIZE):
                     await ptr_file.write(content)
-            return JSONResponse(
-                content={
-                    "status": "success",
-                    "message": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-                    "file_id": unique_filename,
-                },
-            )
         except Exception as e:
             logger.error(f"Failed to save the file: {repr(e)}")
             return JSONResponse(
@@ -56,6 +51,21 @@ async def upload_data(
                     "message": ResponseSignal.FILE_UPLOAD_FAILURE.value,
                 },
             )
+        asset_model = await AssetModel.create_instance(db_client=request.app.database)
+        asset_resource = Asset(
+            asset_projectid=project.id,
+            asset_type=AssetTypeEnum.FILE.value,
+            asset_name=unique_filename,
+            asset_size=file.size,
+        )
+        asset_record = await asset_model.insert_asset(asset=asset_resource)
+        return JSONResponse(
+            content={
+                "status": "success",
+                "message": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
+                "file_id": str(asset_record.id),
+            },
+        )
     except ValueError as ve:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -114,7 +124,7 @@ async def process_endpoint(
         for i, chunk in enumerate(file_chunks)
     ]
     if do_reset:
-        await chunk_model.delete_chunks_by_projectid(projectid=project.id)
+        await chunk_model.delete_chunks_by_projectid(projectid=str(project.id))
 
     no_records = await chunk_model.bulk_create_chunks(chunks=file_chunks_records)
 

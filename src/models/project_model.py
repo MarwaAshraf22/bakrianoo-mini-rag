@@ -4,12 +4,12 @@ from .enums.db_enum import DataBaseEnum
 
 
 class ProjectModel(BaseDataModel):
-    def __init__(self, db_client: object):
+    def __init__(self, db_client):
         super().__init__(db_client)
         self.collection = self.db_client[DataBaseEnum.COLLECTION_PROJECT_NAME.value]
 
     @classmethod
-    async def create_instance(cls, db_client: object):
+    async def create_instance(cls, db_client):
         instance = cls(db_client)
         await instance.init_connection()
         return instance
@@ -25,7 +25,7 @@ class ProjectModel(BaseDataModel):
                     name=index.get("name"),
                 )
 
-    async def create_project(self, project: Project) -> Project:
+    async def insert_project(self, project: Project) -> Project:
         result = await self.collection.insert_one(
             project.model_dump(by_alias=True, exclude_unset=True)
         )
@@ -37,7 +37,7 @@ class ProjectModel(BaseDataModel):
         if project_data:
             return Project.model_validate(project_data)
         new_project = Project(projectid=projectid)
-        return await self.create_project(new_project)
+        return await self.insert_project(new_project)
 
     async def get_all_projects(
         self, page: int = 1, page_size: int = 10
