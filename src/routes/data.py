@@ -1,13 +1,14 @@
 import logging
-from pathlib import Path
 
+# from pathlib import Path
 import aiofiles
 from fastapi import APIRouter, Depends, UploadFile, status
 from fastapi.responses import JSONResponse
 
-from controllers import DataController, ProjectController
+from controllers import DataController, ProcessController, ProjectController
 from helpers.config import Settings, get_settings
 from models import ResponseSignal
+from routes.schemas.data import ProcessRequest
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -36,7 +37,7 @@ async def upload_data(
                 content={
                     "status": "success",
                     "message": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-                    "file_id": Path(unique_filename).stem,
+                    "file_id": unique_filename,
                 },
             )
         except Exception as e:
@@ -64,3 +65,29 @@ async def upload_data(
                 "message": f"An unexpected error occurred: {repr(e)}",
             },
         )
+
+
+@data_router.post("/process/{projectid}")
+async def process_endpoint(projectid: str, process_request: ProcessRequest):
+    file_id = process_request.file_id
+    process_controller = ProcessController(projectid=projectid)
+    file_content = process_controller.load_file_content(fileid=file_id)
+    chunk_size = process_request.chunk_size or 100
+    overlap_size = process_request.overlap_size or 20
+    file_chunks = process_controller.process_file_content(
+        file_content=file_content,
+        fileid=file_id,
+        chunk_size=chunk_size,
+        overlap_size=overlap_size,
+    )
+    if not file_chunks or len(file_chunks) == 0:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "status": "error",
+                "message": ResponseSignal.FILE_PROCESSING_FAILURE.value,
+            },
+        )
+
+    # DEBUG:
+    return file_chunks
