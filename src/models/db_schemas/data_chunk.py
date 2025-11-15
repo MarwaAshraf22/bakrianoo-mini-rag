@@ -22,3 +22,8 @@ class DataChunk(BaseModel):
                 "name": "chunk_projectid_idx",
             },
         ]
+
+
+class RetrievedDocument(BaseModel):
+    text: str
+    score: float

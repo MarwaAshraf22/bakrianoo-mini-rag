@@ -16,8 +16,8 @@ class OpenAIProvider(LLMInterface):
         default_temperature: float = 0.1,
     ):
         self.api_key = api_key
-        self.api_url = api_url
-        self.client = OpenAI(api_key=api_key, base_url=api_url)
+        self.api_url = api_url if api_url else None
+        self.client = OpenAI(api_key=self.api_key, base_url=self.api_url)
 
         self.default_in_max_chars = default_in_max_chars
         self.default_out_max_tokens = default_out_max_tokens
@@ -28,6 +28,8 @@ class OpenAIProvider(LLMInterface):
         self.embedding_size = None
 
         self.logger = logging.getLogger(__name__)
+
+        self.enums = OpenAIEnum
 
     def set_generation_model(self, modelid: str):
         self.generation_modelid = modelid
@@ -99,7 +101,7 @@ class OpenAIProvider(LLMInterface):
         ):
             self.logger.error("Invalid response from OpenAI embeddings API.")
             return None
-        
+
         return response.data[0].embedding
 
     def construct_prompt(self, prompt: str, role: str) -> dict:

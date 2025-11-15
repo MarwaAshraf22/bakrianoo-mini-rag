@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     VECTOR_DB_PATH: str = None
     VECTOR_DB_DISTANCE_METRIC: str = None
 
+    PRIMARY_LANGUAGE: str = "en"
+    DEFAULT_LANGUAGE: str = "en"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

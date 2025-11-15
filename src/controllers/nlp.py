@@ -3,6 +3,7 @@ import json
 from models.db_schemas import DataChunk, Project
 from stores.llm.llm_enum import DocumentTypeEnum
 from stores.llm.llm_interface import LLMInterface
+from stores.llm.templates.template_parser import TemplateParser
 from stores.vectordb.vectordb_interface import VectorDBInterface
 
 from .base import BaseController
@@ -14,11 +15,13 @@ class NLPController(BaseController):
         client_vectordb: VectorDBInterface,
         client_generation: LLMInterface,
         client_embedding: LLMInterface,
+        template_parser: TemplateParser,
     ):
         super().__init__()
         self.client_vectordb = client_vectordb
         self.client_generation = client_generation
         self.client_embedding = client_embedding
+        self.template_parser = template_parser
 
     def create_collection_name(self, projectid: str) -> str:
         return f"collection_{projectid}".strip().lower()
@@ -84,4 +87,46 @@ class NLPController(BaseController):
         if not results:
             return []
 
-        return json.loads(json.dumps(results, default=lambda x: x.__dict__))
+        # return json.loads(json.dumps(results, default=lambda x: x.__dict__))
+        return results
+
+    def answer_rag_query(
+        self, project: Project, query: str, limit: int = 10
+    ) -> tuple[str, str, list[dict]]:
+        retrieved_docs = self.search_vectordb_collection(
+            project=project,
+            text=query,
+            limit=limit,
+        )
+        if not (retrieved_docs and len(retrieved_docs)):
+            return "", "", []
+
+        # construct sys prompt
+        sys_prompt = self.template_parser.get("rag", "system_prompt")
+        # construct doc prompt
+        docs_prompt = "\n".join(
+            [
+                self.template_parser.get(
+                    "rag",
+                    "document_prompt",
+                    _vars={"doc_num": i, "chunk_text": doc.text},
+                )
+                for i, doc in enumerate(retrieved_docs)
+            ]
+        )
+        # construct footer prompt
+        footer_prompt = self.template_parser.get("rag", "footer_prompt")
+
+        chat_history = [
+            self.client_generation.construct_prompt(
+                sys_prompt, self.client_generation.enums.SYSTEM.value
+            )
+        ]
+
+        full_prompt = "\n\n".join([docs_prompt, footer_prompt])
+
+        answer = self.client_generation.generate_text(
+            prompt=full_prompt, chat_history=chat_history
+        )
+
+        return answer, full_prompt, chat_history

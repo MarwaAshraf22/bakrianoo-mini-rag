@@ -2,6 +2,8 @@ import logging
 
 from qdrant_client import QdrantClient, models
 
+from models.db_schemas import RetrievedDocument
+
 from ..vectordb_enum import DistanceMetricEnum
 from ..vectordb_interface import VectorDBInterface
 
@@ -162,7 +164,7 @@ class QdrantDBProvider(VectorDBInterface):
 
     def query_by_vector(
         self, collection_name: str, vector: list, limit: int = 5
-    ) -> list:
+    ) -> list[RetrievedDocument]:
         if not self.collection_exists(collection_name):
             self.logger.error(f"Collection {collection_name} does not exist.")
             return []
@@ -173,7 +175,12 @@ class QdrantDBProvider(VectorDBInterface):
                 query_vector=vector,
                 limit=limit,
             )
-            return results
+            if not (results and len(results)):
+                return []
+            return [
+                RetrievedDocument(text=res.payload.get("text", ""), score=res.score)
+                for res in results
+            ]
         except Exception as e:
             self.logger.error(f"Error querying by vector: {e}")
             return []

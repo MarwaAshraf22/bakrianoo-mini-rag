@@ -7,6 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from helpers.config import Settings, get_settings
 from routes import core, data, nlp
 from stores.llm.llm_provider_factory import LLMProviderFactory
+from stores.llm.templates.template_parser import TemplateParser
 from stores.vectordb.vectordb_provider_factory import VectorDBProviderFactory
 
 load_dotenv()
@@ -31,6 +32,7 @@ async def lifespan(app: FastAPI):
 
     llm_provider_factory = LLMProviderFactory(settings)
     vectordb_provider_factory = VectorDBProviderFactory(settings)
+
     app.generation_client = llm_provider_factory.create(
         provider=settings.GENERATION_BACKEND
     )
@@ -40,6 +42,10 @@ async def lifespan(app: FastAPI):
     app.vectordb_client = vectordb_provider_factory.create(
         provider=settings.VECTOR_DB_BACKEND
     )
+    app.template_parser = TemplateParser(
+        language=settings.PRIMARY_LANGUAGE, default_language=settings.DEFAULT_LANGUAGE
+    )
+
     app.vectordb_client.connect()
     app.generation_client.set_generation_model(settings.GENERATION_MODEL_ID)
     app.embedding_client.set_embedding_model(

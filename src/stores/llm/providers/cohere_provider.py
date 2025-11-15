@@ -28,6 +28,7 @@ class CohereProvider(LLMInterface):
 
         self.client = cohere.Client(api_key=api_key)
         self.logger = logging.getLogger(__name__)
+        self.enums = CohereEnum
 
     def set_generation_model(self, modelid: str):
         self.generation_modelid = modelid
@@ -84,7 +85,7 @@ class CohereProvider(LLMInterface):
         if not (response and response.embeddings and response.embeddings.float):
             self.logger.error("Invalid response from Cohere embeddings API.")
             return None
-        
+
         return response.embeddings.float[0]
 
     def construct_prompt(self, prompt: str, role: str) -> dict:
