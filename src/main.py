@@ -6,6 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from helpers.config import Settings, get_settings
 from routes import core, data
+from stores.llm.llm_provider_factory import LLMProviderFactory
 
 load_dotenv()
 
@@ -26,6 +27,18 @@ async def lifespan(app: FastAPI):
     settings: Settings = get_settings()
     app.mongodb_client = AsyncIOMotorClient(settings.MONGODB_URI)
     app.database = app.mongodb_client[settings.MONGODB_DATABASE]
+
+    llm_provider_factory = LLMProviderFactory(settings)
+    app.generation_client = llm_provider_factory.create(
+        provider=settings.GENERATION_BACKEND
+    )
+    app.embedding_client = llm_provider_factory.create(
+        provider=settings.EMBEDDING_BACKEND
+    )
+    app.generation_model.set_generation_model(settings.GENERATION_MODEL_ID)
+    app.embedding_model.set_embedding_model(
+        settings.EMBEDDING_MODEL_ID, settings.EMBEDDING_SIZE
+    )
     try:
         yield
     finally:
