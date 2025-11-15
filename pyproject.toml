@@ -3,6 +3,7 @@ name="bakrianoo-mini-rag"
 version="0.1.0"
 dependencies = [
     "aiofiles>=25.1.0",
+    "cohere>=5.20.0",
     "fastapi>=0.121.1",
     "langchain>=1.0.5",
     "langchain-community>=0.4.1",
