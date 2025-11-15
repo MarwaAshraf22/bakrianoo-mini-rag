@@ -115,7 +115,9 @@ class NLPController(BaseController):
             ]
         )
         # construct footer prompt
-        footer_prompt = self.template_parser.get("rag", "footer_prompt")
+        footer_prompt = self.template_parser.get(
+            "rag", "footer_prompt", _vars={"user_query": query}
+        )
 
         chat_history = [
             self.client_generation.construct_prompt(
@@ -124,6 +126,10 @@ class NLPController(BaseController):
         ]
 
         full_prompt = "\n\n".join([docs_prompt, footer_prompt])
+
+        print(
+            f"[RAG] full prompt constructed:\n{full_prompt}\n{'-' * 50}\n", chat_history
+        )
 
         answer = self.client_generation.generate_text(
             prompt=full_prompt, chat_history=chat_history
