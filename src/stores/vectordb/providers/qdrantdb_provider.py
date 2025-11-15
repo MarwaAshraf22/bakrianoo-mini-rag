@@ -80,7 +80,7 @@ class QdrantDBProvider(VectorDBInterface):
             #     collection_name=collection_name,
             #     points=[
             #         models.PointStruct(
-            #             id=recordid,
+            #             id=[recordid],
             #             vector=vector,
             #             payload={"text": text, "metadata": metadata},
             #         )
@@ -90,7 +90,7 @@ class QdrantDBProvider(VectorDBInterface):
             #     collection_name=collection_name,
             #     points=[
             #         models.PointStruct(
-            #             id=recordid,
+            #             id=[recordid],
             #             vector=vector,
             #             payload={"text": text, "metadata": metadata},
             #         )
@@ -100,7 +100,7 @@ class QdrantDBProvider(VectorDBInterface):
                 collection_name=collection_name,
                 records=[
                     models.Record(
-                        id=recordid,
+                        id=[recordid],
                         vector=vector,
                         payload={"text": text, "metadata": metadata},
                     )
@@ -134,10 +134,11 @@ class QdrantDBProvider(VectorDBInterface):
             batch_texts = texts[start_idx:end_idx]
             batch_vectors = vectors[start_idx:end_idx]
             batch_metadata = metadata[start_idx:end_idx]
+            batch_recordids = recordids[start_idx:end_idx]
 
             batch_records = [
                 models.Record(
-                    id=recordids[i] if recordids and i < len(recordids) else None,
+                    id=batch_recordids[i],
                     vector=batch_vectors[i],
                     payload={
                         "text": batch_texts[i],

@@ -47,7 +47,7 @@ async def upload_data(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 content={
                     "status": "error",
-                    "message": ResponseSignal.FILE_UPLOAD_FAILURE.value,
+                    "signal": ResponseSignal.FILE_UPLOAD_FAILURE.value,
                 },
             )
         asset_model = await AssetModel.create_instance(db_client=request.app.database)
@@ -61,7 +61,7 @@ async def upload_data(
         return JSONResponse(
             content={
                 "status": "success",
-                "message": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
+                "signal": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
                 "file_id": str(asset_record.id),
             },
         )
@@ -108,7 +108,7 @@ async def process_endpoint(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content={
                     "status": "error",
-                    "message": ResponseSignal.FILE_MISSING_ID_ERROR.value,
+                    "signal": ResponseSignal.FILE_MISSING_ID_ERROR.value,
                 },
             )
         project_file_ids = {asset_record.id: asset_record.asset_name}
@@ -123,7 +123,7 @@ async def process_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             content={
                 "status": "error",
-                "message": ResponseSignal.NO_FILES_ERROR.value,
+                "signal": ResponseSignal.NO_FILES_ERROR.value,
             },
         )
 
@@ -147,7 +147,7 @@ async def process_endpoint(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 content={
                     "status": "error",
-                    "message": ResponseSignal.FILE_PROCESSING_FAILURE.value,
+                    "signal": ResponseSignal.FILE_PROCESSING_FAILURE.value,
                 },
             )
 
@@ -169,7 +169,7 @@ async def process_endpoint(
     return JSONResponse(
         content={
             "status": "success",
-            "message": ResponseSignal.FILE_PROCESSING_SUCCESS.value,
+            "signal": ResponseSignal.FILE_PROCESSING_SUCCESS.value,
             "total_chunks_created": no_records,
             "total_files_processed": no_files,
         },

@@ -1,6 +1,7 @@
 from helpers.config import Settings
 
 from .llm_enum import LLMEnum
+from .llm_interface import LLMInterface
 from .providers import CohereProvider, OpenAIProvider
 
 
@@ -8,7 +9,7 @@ class LLMProviderFactory:
     def __init__(self, config: Settings):
         self.config = config
 
-    def create(self, provider: str):
+    def create(self, provider: str) -> LLMInterface:
         provider = provider.upper()
         if provider == LLMEnum.OPENAI.value:
             return OpenAIProvider(

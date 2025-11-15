@@ -99,6 +99,8 @@ class OpenAIProvider(LLMInterface):
         ):
             self.logger.error("Invalid response from OpenAI embeddings API.")
             return None
+        
+        return response.data[0].embedding
 
     def construct_prompt(self, prompt: str, role: str) -> dict:
         return {

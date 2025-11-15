@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from helpers.config import Settings, get_settings
-from routes import core, data
+from routes import core, data, nlp
 from stores.llm.llm_provider_factory import LLMProviderFactory
 from stores.vectordb.vectordb_provider_factory import VectorDBProviderFactory
 
@@ -41,9 +41,9 @@ async def lifespan(app: FastAPI):
         provider=settings.VECTOR_DB_BACKEND
     )
     app.vectordb_client.connect()
-    app.generation_model.set_generation_model(settings.GENERATION_MODEL_ID)
-    app.embedding_model.set_embedding_model(
-        settings.EMBEDDING_MODEL_ID, settings.EMBEDDING_SIZE
+    app.generation_client.set_generation_model(settings.GENERATION_MODEL_ID)
+    app.embedding_client.set_embedding_model(
+        settings.EMBEDDING_MODEL_ID, settings.EMBEDDING_MODEL_SIZE
     )
     try:
         yield
@@ -56,3 +56,4 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(core.base_router)
 app.include_router(data.data_router)
+app.include_router(nlp.nlp_router)

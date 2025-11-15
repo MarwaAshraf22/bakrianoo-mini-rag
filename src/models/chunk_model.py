@@ -1,3 +1,4 @@
+from bson import ObjectId
 from pymongo import InsertOne
 
 from .base_data_model import BaseDataModel
@@ -45,7 +46,9 @@ class ChunkModel(BaseDataModel):
     ) -> int:
         operations = []
         for chunk in chunks:
-            operations.append(InsertOne(chunk.model_dump()))
+            operations.append(
+                InsertOne(chunk.model_dump(by_alias=True, exclude_unset=True))
+            )
             if len(operations) == batch_size:
                 await self.collection.bulk_write(operations)
                 operations = []
@@ -56,3 +59,15 @@ class ChunkModel(BaseDataModel):
     async def delete_chunks_by_projectid(self, projectid: str) -> int:
         result = await self.collection.delete_many({"chunk_projectid": projectid})
         return result.deleted_count
+
+    async def get_chunks_by_projectid(
+        self, projectid: str, page: int = 1, page_size: int = 100
+    ) -> list[DataChunk]:
+        skip = (page - 1) * page_size
+        cursor = (
+            self.collection.find({"chunk_projectid": ObjectId(projectid)})
+            .skip(skip)
+            .limit(page_size)
+        )
+        chunks = [DataChunk.model_validate(document) async for document in cursor]
+        return chunks
