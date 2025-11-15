@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     GENERATION_DEFAULT_MAX_TOKENS: int = None
     GENERATION_DEFAULT_TEMPERATURE: float = None
 
+    VECTOR_DB_BACKEND: str = None
+    VECTOR_DB_PATH: str = None
+    VECTOR_DB_DISTANCE_METRIC: str = None
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
