@@ -27,11 +27,11 @@ class NLPController(BaseController):
         return f"collection_{projectid}".strip().lower()
 
     def reset_vectordb_collection(self, project: Project):
-        collection_name = self.create_collection_name(str(project.id))
+        collection_name = self.create_collection_name(str(project.projectid))
         self.client_vectordb.drop_collection(collection_name)
 
     def get_vectordb_collection_info(self, project: Project):
-        collection_name = self.create_collection_name(str(project.id))
+        collection_name = self.create_collection_name(str(project.projectid))
         info = self.client_vectordb.collection_info(collection_name)
         return json.loads(json.dumps(info, default=lambda x: x.__dict__))
 
@@ -43,7 +43,7 @@ class NLPController(BaseController):
         do_reset: bool = False,
     ) -> bool:
         # get collection name
-        collection_name = self.create_collection_name(str(project.id))
+        collection_name = self.create_collection_name(str(project.projectid))
         # manage items
         texts, metadata = list(
             zip(*[(chunk.chunk_text, chunk.chunk_metadata) for chunk in chunks])
@@ -72,7 +72,7 @@ class NLPController(BaseController):
         return True
 
     def search_vectordb_collection(self, project: Project, text: str, limit: int = 10):
-        collection_name = self.create_collection_name(str(project.id))
+        collection_name = self.create_collection_name(str(project.projectid))
         query_vector = self.client_embedding.embed_text(
             text=text, document_type=DocumentTypeEnum.QUERY.value
         )
@@ -109,7 +109,10 @@ class NLPController(BaseController):
                 self.template_parser.get(
                     "rag",
                     "document_prompt",
-                    _vars={"doc_num": i, "chunk_text": doc.text},
+                    _vars={
+                        "doc_num": i,
+                        "chunk_text": self.client_generation.process_text(doc.text),
+                    },
                 )
                 for i, doc in enumerate(retrieved_docs)
             ]

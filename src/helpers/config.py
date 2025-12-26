@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     PRIMARY_LANGUAGE: str = "en"
     DEFAULT_LANGUAGE: str = "en"
 
+    POSTGRES_USER: str = None
+    POSTGRES_PASSWORD: str = None
+    POSTGRES_ROOT_DB: str = None
+    POSTGRES_HOST: str = None
+    POSTGRES_PORT: int = None
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

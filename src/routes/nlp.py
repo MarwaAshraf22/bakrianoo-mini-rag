@@ -18,7 +18,7 @@ nlp_router = APIRouter(
 
 
 @nlp_router.post("/index/push/{projectid}")
-async def push_index(request: Request, projectid: str, push_request: PushRequest):
+async def push_index(request: Request, projectid: int, push_request: PushRequest):
     project_model = await ProjectModel.create_instance(db_client=request.app.database)
     chunk_model = await ChunkModel.create_instance(db_client=request.app.database)
 
@@ -40,7 +40,7 @@ async def push_index(request: Request, projectid: str, push_request: PushRequest
     idx = 0
     while True:
         page_chunks = await chunk_model.get_chunks_by_projectid(
-            projectid=str(project.id), page=page_no
+            projectid=int(project.projectid), page=page_no
         )
         if not (page_chunks and len(page_chunks)):
             break
@@ -76,7 +76,7 @@ async def push_index(request: Request, projectid: str, push_request: PushRequest
 
 
 @nlp_router.get("/index/info/{projectid}")
-async def get_project_index_info(request: Request, projectid: str):
+async def get_project_index_info(request: Request, projectid: int):
     project_model = await ProjectModel.create_instance(db_client=request.app.database)
     project = await project_model.get_or_create_project(projectid=projectid)
     if not project:
@@ -102,7 +102,7 @@ async def get_project_index_info(request: Request, projectid: str):
 
 
 @nlp_router.post("/index/search/{projectid}")
-async def search_index(request: Request, projectid: str, search_request: SearchRequest):
+async def search_index(request: Request, projectid: int, search_request: SearchRequest):
     project_model = await ProjectModel.create_instance(db_client=request.app.database)
     project = await project_model.get_or_create_project(projectid=projectid)
     if not project:
@@ -141,7 +141,7 @@ async def search_index(request: Request, projectid: str, search_request: SearchR
 
 
 @nlp_router.post("/index/answer/{projectid}")
-async def answer_index(request: Request, projectid: str, search_request: SearchRequest):
+async def answer_index(request: Request, projectid: int, search_request: SearchRequest):
     project_model = await ProjectModel.create_instance(db_client=request.app.database)
     project = await project_model.get_or_create_project(projectid=projectid)
     if not project:

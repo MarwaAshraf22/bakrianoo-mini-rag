@@ -63,6 +63,7 @@ class CohereProvider(LLMInterface):
         if not response or not response.text:
             self.logger.error("Invalid response from Cohere chat API.")
             return ""
+        return response.text
 
     def embed_text(self, text: str, document_type: str | None = None):
         if not self.client:
@@ -91,7 +92,8 @@ class CohereProvider(LLMInterface):
     def construct_prompt(self, prompt: str, role: str) -> dict:
         return {
             "role": role,
-            "text": self.process_text(prompt),
+            # "text": self.process_text(prompt),
+            "text": prompt,
         }
 
     def process_text(self, text: str) -> str:
