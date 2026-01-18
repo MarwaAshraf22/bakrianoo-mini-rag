@@ -1,0 +1,195 @@
+how to fix below error INFO: 127.0.0.1:52344 - "POST /api/v1/data/process/1 HTTP/1.1" 500 Internal Server Error ERROR: Exception in ASGI application Traceback (most recent call last): File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/fastapi/encoders.py", line 324, in jsonable_encoder data = dict(obj) TypeError: 'coroutine' object is not iterable During handling of the above exception, another exception occurred: Traceback (most recent call last): File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/fastapi/encoders.py", line 329, in jsonable_encoder data = vars(obj) TypeError: vars() argument must have __dict__ attribute The above exception was the direct cause of the following exception: Traceback (most recent call last): File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/uvicorn/protocols/http/httptools_impl.py", line 411, in run_asgi result = await app( # type: ignore[func-returns-value] File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/uvicorn/middleware/proxy_headers.py", line 69, in __call__ return await self.app(scope, receive, send) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/fastapi/applications.py", line 1054, in __call__ await super().__call__(scope, receive, send) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/applications.py", line 123, in __call__ await self.middleware_stack(scope, receive, send) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/middleware/errors.py", line 186, in __call__ raise exc File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/middleware/errors.py", line 164, in __call__ await self.app(scope, receive, _send) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/middleware/exceptions.py", line 65, in __call__ await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app raise exc File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app await app(scope, receive, sender) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/routing.py", line 756, in __call__ await self.middleware_stack(scope, receive, send) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/routing.py", line 776, in app await route.handle(scope, receive, send) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/routing.py", line 297, in handle await self.app(scope, receive, send) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/routing.py", line 77, in app await wrap_app_handling_exceptions(app, request)(scope, receive, send) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app raise exc File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app await app(scope, receive, sender) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/starlette/routing.py", line 72, in app response = await func(request) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/fastapi/routing.py", line 296, in app content = await serialize_response( File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/fastapi/routing.py", line 180, in serialize_response return jsonable_encoder(response_content) File "/home/marwa/miniconda3/envs/mini-rag-app/lib/python3.8/site-packages/fastapi/encoders.py", line 332, in jsonable_encoder raise ValueError(errors) from e ValueError: [TypeError("'coroutine' object is not iterable"), TypeError('vars() argument must have __dict__ attribute')]
+
+
+This is a classic FastAPI async bug 👍
+You are returning a coroutine instead of its result.
+
+Root Cause (100% certain)
+
+FastAPI tried to serialize your response and found:
+
+TypeError: 'coroutine' object is not iterable
+
+
+That only happens when you:
+
+call an async function
+
+below is the code
+@data_router.post("/process/{project_id}")
+async def process_endpoint(request: Request, project_id: str, process_request: ProcessRequest):
+
+    file_id = process_request.file_id
+    chunk_size = process_request.chunk_size
+    overlap_size = process_request.overlap_size
+
+
+    process_controller = ProcessController(project_id=project_id)
+    file_content = process_controller.get_file_content(file_id=file_id)
+
+    file_chunks = process_controller.process_file_content(
+        file_content=file_content,
+        file_id=file_id,
+        chunk_size=chunk_size,
+        overlap_size=overlap_size)
+
+    project_model = ProjectModel(
+        db_client=request.app.db_client
+    )
+
+    project = await project_model.get_project_or_create_one(
+        project_id=project_id
+    )
+
+    if file_chunks is None or len(file_chunks)==0:
+
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content ={
+                "signal" : ResponseSignal.PROCESSING_FAILED.value
+            }
+        )
+
+    file_chunks_records = [
+
+        DataChunk(
+            chunk_text=chunk.page_content,
+            chunk_metadata=chunk.metadata,
+            chunk_order=i+1,
+            chunk_project_id=project.id,
+        )
+
+        for i, chunk in enumerate(file_chunks)
+    ]
+
+    chunk_model = ChunkModel(
+        db_client=request.app.db_client
+    )
+
+    no_records = chunk_model.insert_many_chunk(chunks=file_chunks_records)
+
+    return no_records
+
+Perfect — thanks for sharing the code.
+The bug is exactly where expected 👍
+
+✅ Root Cause (Confirmed)
+
+You are calling async functions without await and returning a coroutine.
+
+❌ Problem lines
+file_content = process_controller.get_file_content(file_id=file_id)
+
+file_chunks = process_controller.process_file_content(...)
+
+no_records = chunk_model.insert_many_chunk(chunks=file_chunks_records)
+
+
+At least one (likely all) of these methods is async def, so Python returns a coroutine object.
+
+FastAPI then tries to serialize it → 💥
+
+✅ Fix (Minimal & Correct)
+✔️ Add await to async calls
+@data_router.post("/process/{project_id}")
+async def process_endpoint(request: Request, project_id: str, process_request: ProcessRequest):
+
+    file_id = process_request.file_id
+    chunk_size = process_request.chunk_size
+    overlap_size = process_request.overlap_size
+
+    process_controller = ProcessController(project_id=project_id)
+
+    # ✅ FIX 1
+    file_content = await process_controller.get_file_content(file_id=file_id)
+
+    # ✅ FIX 2
+    file_chunks = await process_controller.process_file_content(
+        file_content=file_content,
+        file_id=file_id,
+        chunk_size=chunk_size,
+        overlap_size=overlap_size
+    )
+
+    project_model = ProjectModel(
+        db_client=request.app.db_client
+    )
+
+    project = await project_model.get_project_or_create_one(
+        project_id=project_id
+    )
+
+    if not file_chunks:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "signal": ResponseSignal.PROCESSING_FAILED.value
+            }
+        )
+
+    file_chunks_records = [
+        DataChunk(
+            chunk_text=chunk.page_content,
+            chunk_metadata=chunk.metadata,
+            chunk_order=i + 1,
+            chunk_project_id=project.id,
+        )
+        for i, chunk in enumerate(file_chunks)
+    ]
+
+    chunk_model = ChunkModel(
+        db_client=request.app.db_client
+    )
+
+    # ✅ FIX 3 (THIS WAS CAUSING THE 500)
+    no_records = await chunk_model.insert_many_chunk(
+        chunks=file_chunks_records
+    )
+
+    return {"inserted_records": no_records}
+
+🔍 Why This Broke
+
+FastAPI tried to serialize:
+
+return no_records
+
+
+But no_records was:
+
+<class 'coroutine'>
+
+
+Hence:
+
+TypeError: 'coroutine' object is not iterable
+
+🔒 Defensive Improvement (Optional but Recommended)
+Make return type JSON-safe
+return {
+    "signal": ResponseSignal.PROCESSING_SUCCESS.value,
+    "inserted_count": no_records
+}
+
+🧠 Rule of Thumb (Remember Forever)
+
+If a function is defined with async def
+👉 You must await it
+
+✅ Checklist to avoid this again
+
+ Every async method call has await
+
+ Endpoints return dict / list / Pydantic models
+
+ DB calls are awaited
+
+ IDE warnings enabled (missing await)
+
+If you want, paste:
+
+ProcessController methods
+
+ChunkModel.insert_many_chunk
+
+and I’ll double-check for hidden async bugs before they bite again.
